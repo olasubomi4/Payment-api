@@ -5,7 +5,7 @@ const indexrouters = require("./routers/indexrouters");
 app.use(express.json());
 app.use(indexrouters);
 
-app.listen(process.env.PORT || 80, () => {
+app.listen(process.env.PORT , () => {
 
     console.log("server started on port 5002");
 });
