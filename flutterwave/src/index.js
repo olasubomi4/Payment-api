@@ -5,8 +5,6 @@ const port = process.env.PORT || 80;
 
 app.use(express.json());
 app.use(indexrouters);
-
-app.listen(port , () => {
-
-    console.log("server started on port 5002");
-});
+const PORT = 8080;
+const HOST = '0.0.0.0';
+app.listen(PORT, HOST);
