@@ -81,6 +81,7 @@ router
             console.log(`${balance} \n`);
           }
         }
+      
       //Gets the sum of all Ratio splitType
       console.log("FINALLY, RATIO TYPES ");
      for(var i = 0; i < usersRequest.SplitInfo.length; i++)
@@ -121,7 +122,16 @@ router
         }
   
       }
-
+      var splitSum=0
+      for(var i = 0; i < usersSplitRequest.SplitBreakDown.length; i++)
+      {
+         splitSum=splitSum+usersSplitRequest.SplitBreakDown[i].Amount;
+      }
+     
+      if(splitSum >usersRequest.Amount)
+      {
+        res.send("Invalid request the sum of your split breakdown amount is higher than your transaction amount")
+      }
       //Ensures that balance is not lesser than 0
       if(balance<0)
       {
