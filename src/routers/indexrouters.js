@@ -8,6 +8,7 @@ router
 .route("/split-payments/compute")
 .post((req,res)=> {
     //checks splitinfo size
+    try{
     if (req.body.SplitInfo.length<=0||!req.body.SplitInfo[0].SplitValue)
     {
 
@@ -30,7 +31,20 @@ router
             usersRequest.SplitInfo.push({SplitType:req.body.SplitInfo[s].SplitType,SplitValue: parseInt(req.body.SplitInfo[s].SplitValue), SplitEntityId: req.body.SplitInfo[s].SplitEntityId})
          
        };
-
+       var splitSum=0
+       for(var i = 0; i < usersRequest.SplitInfo.length; i++)
+       {
+          splitSum=splitSum+usersRequest.SplitInfo[i].SplitValue;
+          
+       }
+     
+       if(splitSum >usersRequest.Amount)
+       {
+         res.send("Invalid request the sum of your split amount is higher than your transaction amount");
+         res.end();
+       }
+       else{
+       
       //Creates response template.
       var usersSplitRequest=({ID: usersRequest.ID,Balance : balance,SplitBreakDown:[] }); 
       console.log(`Initial Balance: \n${balance} \n`)
@@ -41,19 +55,26 @@ router
       {
         if(usersRequest.SplitInfo[i].SplitType=="FLAT")
         {
-            if ( usersRequest.SplitInfo[i].SplitValue > balance){
+            if (usersRequest.SplitInfo[i].SplitValue > balance){
+              
                 res.send(" Split Amount cannot be greater than the transaction Amount ");
+                res.end();
             }
-            var checkamountFlat=balance - usersRequest.SplitInfo[i].SplitValue;
-            if(checkamountFlat<0){
+            else{
+            var checkamountFlat= balance - usersRequest.SplitInfo[i].SplitValue;
+            }
+            if(checkamountFlat<0 ||( checkamountFlat.toString().match(/e/)))
+            {
                 res.send("Amount cannot be lesser than 0");
             } 
+            else{
             console.log(`Split amount for "${usersRequest.SplitInfo[i].SplitEntityId}":  ${usersRequest.SplitInfo[i].SplitValue}`)
             
-          usersSplitRequest.SplitBreakDown.push({SplitEntityId:usersRequest.SplitInfo[i].SplitEntityId,Amount: balance - usersRequest.SplitInfo[i].SplitValue});
-          console.log(`Balance after split calculation for "${usersRequest.SplitInfo[i].SplitEntityId}": (${balance} - ${usersRequest.SplitInfo[i].SplitValue})`);
-          balance=balance - usersRequest.SplitInfo[i].SplitValue;
-          console.log(`${balance} \n`);
+            usersSplitRequest.SplitBreakDown.push({SplitEntityId:usersRequest.SplitInfo[i].SplitEntityId,Amount: balance - usersRequest.SplitInfo[i].SplitValue});
+            console.log(`Balance after split calculation for "${usersRequest.SplitInfo[i].SplitEntityId}": (${balance} - ${usersRequest.SplitInfo[i].SplitValue})`);
+            balance=balance - usersRequest.SplitInfo[i].SplitValue;
+            console.log(`${balance} \n`);
+            }
         }
      }
 
@@ -61,24 +82,35 @@ router
      console.log("PERCENTAGE TYPES COME NEXT");
      for(var i = 0; i < usersRequest.SplitInfo.length; i++)
         {
-    
+ 
+
           if(usersRequest.SplitInfo[i].SplitType=="PERCENTAGE")
           {
-            if ( usersRequest.SplitInfo[i].SplitValue > balance)
+            if (usersRequest.SplitInfo[i].SplitValue > balance)
             {
-                res.send(" Split Amount cannot be greater than the transaction Amount");
+              
+              res.send(" Split Amount cannot be greater than the transaction Amount");
+              res.end();
             }
-            var checkamountPercentage= ((balance * usersRequest.SplitInfo[i].SplitValue)*0.01);
-
-            if(checkamountPercentage<0)
+            else
+            {
+            var checkamountPercentage= (balance - (balance * usersRequest.SplitInfo[i].SplitValue)*0.01);
+           
+            }
+            
+            if(checkamountPercentage < 0 ||( checkamountPercentage.toString().match(/e/)))
             {
                 res.send("Amount cannot be lesser than 0");
+                res.end();
             }
+            else
+            {
             console.log(`Split amount for "${usersRequest.SplitInfo[i].SplitEntityId}":(${usersRequest.SplitInfo[i].SplitValue} OF ${balance})`)
             usersSplitRequest.SplitBreakDown.push({SplitEntityId:usersRequest.SplitInfo[i].SplitEntityId,Amount: ((balance * usersRequest.SplitInfo[i].SplitValue)*0.01)});
             console.log(`Balance after split calculation for "${usersRequest.SplitInfo[i].SplitEntityId}": (${balance} - (${((balance * usersRequest.SplitInfo[i].SplitValue)*0.01)}))`);
             balance=balance - ((balance * usersRequest.SplitInfo[i].SplitValue)*0.01);
             console.log(`${balance} \n`);
+            }
           }
         }
       
@@ -99,54 +131,74 @@ router
       console.log(`Opening Ratio Balance = ${ratioBalance} \n`);
       for(var i = 0; i < usersRequest.SplitInfo.length; i++)
       { 
-
         if(usersRequest.SplitInfo[i].SplitType=="RATIO")
         {
-          if ( usersRequest.SplitInfo[i].SplitValue > balance)
+          if (usersRequest.SplitInfo[i].SplitValue > balance)
             {
-              res.send(" Split Amount cannot be greater than the transaction Amount ");
+            
+              res.send(" Split Amount cannot be greater than the transaction Amount");
+              res.end();
+            
             }
-          
-        // let tes = (ratiovalue,ratiototal,ratiobalance) => console.log (parseFloat(((ratiovalue/ratiovalue)*ratiobalance)).toFixed(2));
-      
-          var checkamountRatio=((usersRequest.SplitInfo[i].SplitValue/ratio_size)*ratioBalance);
-          if(checkamountRatio<0)
-          {
-              res.send("Amount cannot be lesser than 0");
-          }
-          console.log(`Split amount for "${usersRequest.SplitInfo[i].SplitEntityId}":(${usersRequest.SplitInfo[i].SplitValue}/${ratio_size}) * ${balance}))`)
-          usersSplitRequest.SplitBreakDown.push({SplitEntityId:usersRequest.SplitInfo[i].SplitEntityId, Amount: ((usersRequest.SplitInfo[i].SplitValue/ratio_size)*ratioBalance)});
-          console.log(`Balance after split calculation for "${usersRequest.SplitInfo[i].SplitEntityId}": (${balance} - (${((usersRequest.SplitInfo[i].SplitValue/ratio_size)*ratioBalance)}))`);
-          balance= balance- ((usersRequest.SplitInfo[i].SplitValue/ratio_size)*ratioBalance);
-          console.log(`${balance} \n`)
+            else
+            {
+              // let tes = (ratiovalue,ratiototal,ratiobalance) => console.log (parseFloat(((ratiovalue/ratiovalue)*ratiobalance)).toFixed(2));
+                var checkamountRatio=((usersRequest.SplitInfo[i].SplitValue/ratio_size)*ratioBalance);
+            }
+              if(checkamountRatio<0 ||( checkamountRatio.toString().match(/e/) ))
+              {
+                res.send("Amount cannot be lesser than 0");
+              }
+              else
+              {
+                console.log(`Split amount for "${usersRequest.SplitInfo[i].SplitEntityId}":(${usersRequest.SplitInfo[i].SplitValue}/${ratio_size}) * ${balance}))`)
+                usersSplitRequest.SplitBreakDown.push({SplitEntityId:usersRequest.SplitInfo[i].SplitEntityId, Amount: ((usersRequest.SplitInfo[i].SplitValue/ratio_size)*ratioBalance)});
+                console.log(`Balance after split calculation for "${usersRequest.SplitInfo[i].SplitEntityId}": (${balance} - (${((usersRequest.SplitInfo[i].SplitValue/ratio_size)*ratioBalance)}))`);
+                balance= balance-((usersRequest.SplitInfo[i].SplitValue/ratio_size)*ratioBalance);
+                console.log(`${balance} \n`);
+
+                
+              }
+            
         }
   
       }
-      var splitSum=0
-      for(var i = 0; i < usersSplitRequest.SplitBreakDown.length; i++)
-      {
-         splitSum=splitSum+usersSplitRequest.SplitBreakDown[i].Amount;
-      }
-     
-      if(splitSum >usersRequest.Amount)
-      {
-        res.send("Invalid request the sum of your split breakdown amount is higher than your transaction amount")
-      }
-      //Ensures that balance is not lesser than 0
-      if(balance<0)
-      {
+   
+       
+      
+      //Ensures that balance is not lesser than 0 and the sum of split breakdown isn't higher than the initial amount
+        if(balance < 0||( balance.toString().match(/e/) != null))
+        {
 
-      res.send("Balance cannot be lesser than 0");
-      }
-      else
-      {
-       console.log(`Final Balance: ${balance}\n `)
-       usersSplitRequest.Balance=balance;
-      }
+        res.send("Balance cannot be lesser than 0");
+        }
+        else
+        {
+          console.log(`Final Balance: ${balance}\n `)
+          usersSplitRequest.Balance=balance;
+          var splitBreakdownSum=0
+          for(var i = 0; i <  usersSplitRequest.SplitBreakDown.length; i++)
+          {
+            splitBreakdownSum=splitBreakdownSum+ usersSplitRequest.SplitBreakDown[i].Amount;
+           
+          }
+           console.log(`${splitBreakdownSum}`)
+            if(splitBreakdownSum>usersRequest.Amount)
+           {
+              res.send("Invalid request the sum of your split breakdown amount is higher than your transaction amount");
+              res.end();
+            }
+           else{
+              console.log(usersRequest);
 
-      console.log(usersRequest);
+             res.json(usersSplitRequest);
+            }
+        
 
-      res.json(usersSplitRequest);
+       
+        }
+      
+      }
     }
 
     else
@@ -154,6 +206,11 @@ router
     res.send("The SplitInfo is too High, It must be between 1 and 20");
     }
   }
+  catch{
+    console.log("One of the constraints caught an error ")
+  }
+} 
+
 );
 module.exports = router;
  
