@@ -18,26 +18,7 @@ app.post('/', (req, res, next) => {
 })
 app.use(errorHandler);
 
-/*app.use((req,res,next) => {
-
-    //const err = new Error(SyntaxError);
-    res.status(404);
-    res.send({
-        error:"not found"
-    });
-    
-})
-app.use((env, req, res, next) => {
-    res.status(err.status || 404);
-    res.send({
-        error:{
-            status: err.status || 404,
-            message: err.message
-        }
-    })
-})
-*/
-app.listen(5002, () => {
+app.listen(80, () => {
 
     console.log("server started on port 80");
 });
